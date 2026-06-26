@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Gossip Harbor Energy Calculator</title>
+    
+    <link rel="preload" href="img/breadL1.webp" as="image">
+    <link rel="preload" href="img/potatoL1.webp" as="image">
+    <link rel="preload" href="img/coffeeL1.webp" as="image">
+    <link rel="preload" href="img/teaL1.webp" as="image">
+    <link rel="preload" href="img/seafoodL1.webp" as="image">
+    <link rel="preload" href="img/orangeL1.webp" as="image">
+    <link rel="preload" href="img/floatieL1.webp" as="image">
+    <link rel="preload" href="img/swimmingL1.webp" as="image">
+    <link rel="preload" href="img/seashellL1.webp" as="image">
+
+    <style>
+        :root {
+            --bg-color: #121212;
+            --surface: #1e1e1e;
+            --primary: #bb86fc;
+            --success: #03dac6;
+            --text-main: #e0e0e0;
+            --text-muted: #9e9e9e;
+            --danger: #cf6679;
+        }
+        body {
+            margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif;
+            background: var(--bg-color); color: var(--text-main);
+            padding-bottom: 120px; /* 配合底部固定區域高度調整 */
+        }
+        h2, h3 { margin-top: 0; padding: 0 16px; font-size: 16px; color: var(--text-muted); }
+        .section { padding: 16px 0; margin-bottom: 8px; background: var(--surface); border-bottom: 1px solid #2a2a2a; }
+        
+        .item-icon { width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
+
+        /* 訂單槽 */
+        .slots-container { display: flex; gap: 12px; overflow-x: auto; padding: 8px 16px; }
+        .slot {
+            width: 80px; height: 80px; border: 2px dashed #444; border-radius: 12px;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            position: relative; background: #252525; padding: 4px; box-sizing: border-box; flex-shrink: 0;
+            transition: border-color 0.2s;
+        }
+        .slot.filled { border-style: solid; border-color: var(--primary); background: #2c2c2c; }
+        .slot .remove {
+            position: absolute; top: -6px; right: -6px; background: var(--danger);
+            color: white; border-radius: 50%; width: 22px; height: 22px;
+            display: flex; align-items: center; justify-content: center; cursor: pointer; font-weight: bold;
+            font-size: 12px; z-index: 10; box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        }
+
+        /* 選擇器 */
+        .selector { display: flex; gap: 10px; overflow-x: auto; padding: 8px 16px; }
+        .cat-btn {
+            padding: 8px 16px; border: 1px solid #444; border-radius: 24px;
+            background: #252525; color: var(--text-main); cursor: pointer; white-space: nowrap;
+            display: flex; align-items: center; gap: 8px; flex-shrink: 0; transition: all 0.2s;
+        }
+        .cat-btn.active { background: var(--primary); color: #000; border-color: var(--primary); font-weight: 600; }
+        .cat-btn img { width: 20px; height: 20px; object-fit: contain; }
+        
+        .level-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); gap: 10px; padding: 8px 16px; margin-top: 4px; }
+        .level-item {
+            aspect-ratio: 1; border: 1px solid #444; border-radius: 12px; padding: 6px; box-sizing: border-box;
+            display: flex; align-items: center; justify-content: center; cursor: pointer; background: #252525;
+            position: relative; transition: background 0.2s;
+        }
+        .level-item:active { background: #333; }
+        .level-item::after {
+            content: attr(data-level); position: absolute; bottom: 4px; right: 6px;
+            font-size: 11px; font-weight: bold; text-shadow: 1px 1px 3px rgba(0,0,0,0.8);
+        }
+
+        /* 庫存區 */
+        .inv-wrapper { padding: 0 16px; }
+        .inv-group { margin-bottom: 12px; border: 1px solid #333; border-radius: 12px; padding: 12px; background: #222; }
+        .inv-title { font-weight: 600; margin-bottom: 12px; color: var(--primary); text-transform: capitalize; font-size: 14px; border-bottom: 1px solid #333; padding-bottom: 6px; }
+        .inv-row { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+        .inv-row:last-child { margin-bottom: 0; }
+        .inv-icon { width: 36px; height: 36px; object-fit: contain; }
+        .inv-level-label { width: 32px; font-size: 14px; color: #ccc; }
+        .inv-controls { display: flex; align-items: center; gap: 6px; margin-left: auto; }
+        .inv-controls button {
+            width: 36px; height: 36px; background: #333; border: none; color: white;
+            border-radius: 8px; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+        }
+        .inv-controls button:active { background: #444; }
+        .inv-controls input {
+            width: 50px; height: 36px; text-align: center; background: #121212; color: white;
+            border: 1px solid #444; border-radius: 8px; font-size: 16px; font-weight: 600;
+        }
+
+        /* 輸出區 (浮動置底) */
+        .output-area {
+            position: fixed; bottom: 0; left: 0; right: 0; background: #1e1e1ede;
+            backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+            padding: 20px 24px; box-shadow: 0 -4px 20px rgba(0,0,0,0.6); z-index: 100;
+            border-top: 1px solid #333; display: flex; flex-direction: column; gap: 12px;
+        }
+        .output-row { display: flex; justify-content: space-between; align-items: center; }
+        .output-label { font-size: 14px; color: var(--text-muted); font-weight: 500; }
+        .result-energy { font-size: 32px; font-weight: 800; color: var(--primary); margin: 0; line-height: 1; }
+        .result-time { font-size: 18px; font-weight: 600; color: var(--success); margin: 0; }
+        
+        .empty-state { color: #666; font-size: 14px; text-align: center; padding: 24px; background: #1a1a1a; border-radius: 12px; border: 1px dashed #333; }
+    </style>
+</head>
+<body>
+
+    <div class="section">
+        <h3>1. 訂單目標 (Target Orders)</h3>
+        <div class="slots-container" id="slotsContainer"></div>
+    </div>
+
+    <div class="section">
+        <h3>2. 產線選擇 (Production Line)</h3>
+        <div class="selector" id="catSelector"></div>
+        <div class="level-grid" id="levelSelector"></div>
+    </div>
+
+    <div class="section" style="border-bottom: none;">
+        <h3>3. 庫存扣減 (Inventory Deduction)</h3>
+        <div class="inv-wrapper" id="inventoryContainer">
+            <div class="empty-state">請先於上方選擇訂單目標</div>
+        </div>
+    </div>
+
+    <div class="output-area">
+        <div class="output-row">
+            <span class="output-label">預估消耗總體力</span>
+            <span class="result-energy" id="totalEnergy">0</span>
+        </div>
+        <div class="output-row">
+            <span class="output-label">自然回體預計時間</span>
+            <span class="result-time" id="estimatedTime">--</span>
+        </div>
+    </div>
+
+<script>
+// --- 核心演算法定義 ---
+const E_MAIN_BASE = 1.17;
+const E_SUB_BASE = 0.20;
+
+const CATEGORIES = {
+    bread: { type: 'MAIN_LINE', maxLevel: 11, group: 'A' },
+    potato: { type: 'SUB_LINE', maxLevel: 7, group: 'A' },
+    coffee: { type: 'MAIN_LINE', maxLevel: 11, group: 'B' },
+    tea: { type: 'SUB_LINE', maxLevel: 7, group: 'B' },
+    floatie: { type: 'MAIN_LINE', maxLevel: 11, group: 'E' },
+    swimming: { type: 'SUB_LINE', maxLevel: 7, group: 'E' },
+    seashell: { type: 'MAIN_LINE', maxLevel: 11, group: 'F' },
+    seafood: { type: 'SEAFOOD_LINE', maxLevel: 10, group: 'C' },
+    orange: { type: 'ORANGE', maxLevel: 7, group: 'D' }
+};
+
+let currentOrder = [];
+let inventoryData = {}; // 格式: { category: { level: quantity } }
+
+// 取得特定類別的淨 L1 需求量 (目標需求 - 庫存折算)
+function getNetL1Required(cat) {
+    let totalL1Required = 0;
+    currentOrder.filter(o => o.cat === cat).forEach(o => {
+        totalL1Required += Math.pow(2, o.level - 1);
+    });
+
+    let totalL1Inventory = 0;
+    if (inventoryData[cat]) {
+        Object.keys(inventoryData[cat]).forEach(lvl => {
+            totalL1Inventory += inventoryData[cat][lvl] * Math.pow(2, lvl - 1);
+        });
+    }
+
+    return Math.max(0, totalL1Required - totalL1Inventory);
+}
+
+// 根據淨 L1 需求量估算耗能 (已移除 Boost，預設 x1)
+function estimateItemEnergy(targetLine, netL1Required) {
+    if (targetLine === 'ORANGE' || netL1Required === 0) return 0;
+
+    if (targetLine === 'MAIN_LINE') {
+        return Math.ceil(netL1Required / E_MAIN_BASE);
+    } else if (targetLine === 'SUB_LINE') {
+        return Math.ceil(netL1Required / E_SUB_BASE);
+    } else if (targetLine === 'SEAFOOD_LINE') {
+        const generatorLevel = 5;
+        const baseLifespan = 12;
+        
+        // 依據底層推論公式：生成器代價 + 點擊次數
+        const energyPerGenerator = Math.ceil(Math.pow(2, generatorLevel - 1) / E_MAIN_BASE);
+        const requiredClicks = Math.ceil(netL1Required / 1);
+        const totalFishNeeded = Math.ceil(requiredClicks / baseLifespan);
+        const fishBuildEnergy = totalFishNeeded * energyPerGenerator;
+        
+        return fishBuildEnergy + requiredClicks;
+    }
+    return 0;
+}
+
+// 結算總耗能與時間映射
+function calculateOrderTotalEnergy() {
+    let totalOrderEnergy = 0;
+    const groups = {};
+
+    const activeCats = [...new Set(currentOrder.map(o => o.cat))];
+    
+    activeCats.forEach(cat => {
+        const catInfo = CATEGORIES[cat];
+        if(!groups[catInfo.group]) groups[catInfo.group] = { MAIN: 0, SUB: 0, OTHER: 0 };
+        
+        const netL1 = getNetL1Required(cat);
+        const energy = estimateItemEnergy(catInfo.type, netL1);
+        
+        if(catInfo.type === 'MAIN_LINE') groups[catInfo.group].MAIN += energy;
+        else if(catInfo.type === 'SUB_LINE') groups[catInfo.group].SUB += energy;
+        else groups[catInfo.group].OTHER += energy;
+    });
+
+    // 處理同源產線疊加邏輯
+    for (const g in groups) {
+        const group = groups[g];
+        if (group.MAIN > 0 && group.SUB > 0) {
+            totalOrderEnergy += Math.max(group.MAIN, group.SUB) + group.OTHER;
+        } else {
+            totalOrderEnergy += group.MAIN + group.SUB + group.OTHER;
+        }
+    }
+
+    // 更新 DOM：體力
+    document.getElementById('totalEnergy').innerText = totalOrderEnergy;
+
+    // 更新 DOM：時間估算 (體力 x 2 分鐘)
+    const timeElement = document.getElementById('estimatedTime');
+    if (totalOrderEnergy > 0) {
+        const targetDate = new Date();
+        targetDate.setMinutes(targetDate.getMinutes() + (totalOrderEnergy * 2));
+        
+        // 格式化為 MM/DD HH:mm
+        const options = { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false };
+        timeElement.innerText = targetDate.toLocaleString('zh-TW', options).replace(',', '');
+        timeElement.style.color = 'var(--success)';
+    } else {
+        timeElement.innerText = '--';
+        timeElement.style.color = 'var(--text-muted)';
+    }
+}
+
+// --- 視圖層控制 ---
+
+function renderSlots() {
+    const container = document.getElementById('slotsContainer');
+    container.innerHTML = '';
+    for(let i=0; i<3; i++) {
+        const slot = document.createElement('div');
+        slot.className = 'slot' + (currentOrder[i] ? ' filled' : '');
+        if(currentOrder[i]) {
+            slot.innerHTML = `
+                <img src="img/${currentOrder[i].cat}L${currentOrder[i].level}.webp" class="item-icon" alt="${currentOrder[i].cat} L${currentOrder[i].level}">
+                <div class="remove" onclick="removeSlot(${i})">✕</div>
+            `;
+        } else {
+            slot.innerHTML = `<span style="font-size:12px; color:#666; font-weight: 500;">Empty</span>`;
+        }
+        container.appendChild(slot);
+    }
+    renderInventory();
+    calculateOrderTotalEnergy();
+}
+
+function removeSlot(index) {
+    currentOrder.splice(index, 1);
+    renderSlots();
+}
+
+function renderCategories() {
+    const container = document.getElementById('catSelector');
+    Object.keys(CATEGORIES).forEach(cat => {
+        const btn = document.createElement('button');
+        btn.className = 'cat-btn';
+        btn.innerHTML = `<img src="img/${cat}L1.webp" alt="${cat}"> <span>${cat}</span>`;
+        btn.onclick = (e) => renderLevels(cat, e.currentTarget);
+        container.appendChild(btn);
+    });
+}
+
+function renderLevels(cat, targetBtn) {
+    document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+    if (targetBtn) targetBtn.classList.add('active');
+
+    const container = document.getElementById('levelSelector');
+    container.innerHTML = '';
+    const max = CATEGORIES[cat].maxLevel;
+    
+    for(let i=1; i<=max; i++) {
+        const item = document.createElement('div');
+        item.className = 'level-item';
+        item.setAttribute('data-level', `L${i}`);
+        item.innerHTML = `<img src="img/${cat}L${i}.webp" class="item-icon" alt="L${i}">`;
+        item.onclick = () => {
+            if(currentOrder.length < 3) {
+                currentOrder.push({ cat: cat, level: i });
+                renderSlots();
+            }
+        };
+        container.appendChild(item);
+    }
+}
+
+function renderInventory() {
+    const container = document.getElementById('inventoryContainer');
+    container.innerHTML = '';
+    const activeCats = [...new Set(currentOrder.map(o => o.cat))];
+    
+    if(activeCats.length === 0) {
+        container.innerHTML = '<div class="empty-state">請先於上方選擇訂單目標</div>';
+        return;
+    }
+
+    activeCats.forEach(cat => {
+        // 取該類別在訂單中的最大等級，僅渲染該等級(含)以下的輸入框
+        const maxOrderLevel = Math.max(...currentOrder.filter(o => o.cat === cat).map(o => o.level));
+        
+        const groupDiv = document.createElement('div');
+        groupDiv.className = 'inv-group';
+        groupDiv.innerHTML = `<div class="inv-title">${cat} Line</div>`;
+        
+        if(!inventoryData[cat]) inventoryData[cat] = {};
+
+        for(let i=1; i<=maxOrderLevel; i++) {
+            const val = inventoryData[cat][i] || 0;
+            const row = document.createElement('div');
+            row.className = 'inv-row';
+            row.innerHTML = `
+                <img src="img/${cat}L${i}.webp" class="inv-icon" alt="${cat} L${i}">
+                <span class="inv-level-label">L${i}</span>
+                <div class="inv-controls">
+                    <button onclick="updateInv('${cat}', ${i}, -1)">−</button>
+                    <input type="number" min="0" inputmode="numeric" value="${val}" onchange="setInv('${cat}', ${i}, this.value)">
+                    <button onclick="updateInv('${cat}', ${i}, 1)">＋</button>
+                </div>
+            `;
+            groupDiv.appendChild(row);
+        }
+        container.appendChild(groupDiv);
+    });
+}
+
+function updateInv(cat, level, delta) {
+    const current = inventoryData[cat][level] || 0;
+    const next = Math.max(0, current + delta);
+    setInv(cat, level, next);
+    renderInventory();
+}
+
+function setInv(cat, level, value) {
+    const parsed = parseInt(value, 10);
+    inventoryData[cat][level] = isNaN(parsed) || parsed < 0 ? 0 : parsed;
+    calculateOrderTotalEnergy();
+}
+
+// 初始化
+renderCategories();
+renderSlots();
+</script>
+</body>
+</html>
