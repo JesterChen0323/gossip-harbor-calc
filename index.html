@@ -43,15 +43,24 @@
         }
         .clear-btn:hover { background: var(--danger); color: #fff; }
 
-        /* 核心修正：確保圖片在容器內等比例縮放，並透過正片疊底（multiply）消除純白底色 */
+        /* 1. 移除 multiply 避免變暗，改用道具卡片化外觀，統一不規則邊緣 */
         .item-icon { 
             width: 100%; 
             height: 100%; 
-            object-fit: contain; /* 確保不變形且完整置中顯示 */
-            pointer-events: none; 
-            mix-blend-mode: multiply; /* 關鍵：消除白底，使其與暗色背景融合 */
+            max-width: 52px; 
+            max-height: 52px;
+            object-fit: contain; 
+            pointer-events: none;
+            
+            /* 純淨的卡片底色，與黑魂背景完美契合 */
+            background: #2a2a2a; 
+            border: 1px solid #3a3a3a;
+            border-radius: 8px;  
+            padding: 4px;
+            box-sizing: border-box;
+            
+            /* 絕對不加任何 filter 或 mix-blend-mode */
         }
-
         /* 訂單槽 */
         .slots-container { display: flex; gap: 12px; overflow-x: auto; padding: 8px 16px; }
         /* 修正訂單槽盒模型，防止大圖擠壓 */
@@ -70,6 +79,7 @@
             box-sizing: border-box; 
             flex-shrink: 0;
         }
+
         .slot.filled { border-style: solid; border-color: var(--primary); background: #2c2c2c; }
         .slot .remove {
             position: absolute; top: -6px; right: -6px; background: var(--danger);
@@ -86,17 +96,50 @@
             display: flex; align-items: center; gap: 8px; flex-shrink: 0; transition: all 0.2s;
         }
         .cat-btn.active { background: var(--primary); color: #000; border-color: var(--primary); font-weight: 600; }
-        .cat-btn img { width: 20px; height: 20px; object-fit: contain; }
-        
+        /* 2. 補上先前遺漏的「產線選擇按鈕」Icon 約束 */
+        .cat-btn img { 
+            width: 24px; 
+            height: 24px; 
+            object-fit: contain; 
+            background: transparent; /* 按鈕內直接使用透明底即可 */
+            border-radius: 4px;
+        }        
         .level-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); gap: 10px; padding: 8px 16px; margin-top: 4px; }
         .level-item {
-            aspect-ratio: 1; border: 1px solid #444; border-radius: 12px; padding: 6px; box-sizing: border-box;
-            display: flex; align-items: center; justify-content: center; cursor: pointer; background: #252525;
+            aspect-ratio: 1; 
+            border: 1px solid #333333; /* 統一深色實體邊框 */
+            border-radius: 8px; /* 統一 8px 卡片圓角 */
+            padding: 6px; 
+            box-sizing: border-box;
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            cursor: pointer; 
+            background: #222222; /* 統一深邃底色 */
             position: relative;
+            transition: border-color 0.2s; /* 增加點擊回饋感 */
+        }
+        /* 懸停或選取時的邊框高亮暗示 */
+        .level-item:hover {
+            border-color: #666666;
         }
         .level-item::after {
-            content: attr(data-level); position: absolute; bottom: 4px; right: 6px;
-            font-size: 11px; font-weight: bold; text-shadow: 1px 1px 3px rgba(0,0,0,0.8);
+            content: attr(data-level); 
+            position: absolute; 
+            bottom: 4px; 
+            right: 6px;
+            font-size: 11px; 
+            font-weight: bold; 
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.8);
+        }
+        /* 2. 關鍵防呆：強制抹除面板內圖片的任何 CSS 殘留白底與邊框 */
+        .level-item .item-icon {
+            background: transparent !important;
+            border: none !important;
+            padding: 0 !important;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
         }
 
         /* 通用包裝區 */
@@ -108,17 +151,29 @@
         .inv-grid { display: block; }
         .inv-row { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
         .inv-row:last-child { margin-bottom: 0; }
-        /* 修正庫存與追蹤器圖示容器，鎖定為絕對正方形，強制約束內部圖片高度 */
+        /* 3. 庫存區圖示硬性防線 */
         .inv-icon { 
-            width: 36px; 
-            height: 36px; 
+            width: 40px; /* 稍微放大以配合卡片視覺 */
+            height: 40px; 
             object-fit: contain; 
-            flex-shrink: 0; /* 防止被右側控制項擠壓變形 */
-            mix-blend-mode: multiply; /* 同步消除庫存圖示白底 */
+            flex-shrink: 0; 
+            
+            background: #222222; /* 微微的深色底襯托 */
+            border: 1px solid #333333;
+            border-radius: 8px;
+            padding: 4px;
+            box-sizing: border-box;            
         }
         .inv-level-label { width: 32px; font-size: 14px; color: #ccc; }
         
-        .inv-controls { display: flex; align-items: center; gap: 6px; margin-left: auto; }
+        /* 4. 解決「+-符號被推出框線」的關鍵：鎖定右側控制區寬度 */
+        .inv-controls { 
+            display: flex; 
+            align-items: center; 
+            gap: 4px; 
+            margin-left: auto;
+            flex-shrink: 0; /* 強制控制項絕不縮小、絕不變形 */
+        }
         .inv-controls button {
             width: 36px; height: 36px; background: #333; border: none; color: white;
             border-radius: 8px; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center;
@@ -130,8 +185,22 @@
 
         /* 跨裝置 RWD 佈局優化 (寬螢幕調整) */
         @media (min-width: 768px) {
-            .inv-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
-            .inv-row { background: #2a2a2a; border: 1px solid #3a3a3a; border-radius: 8px; padding: 10px; margin-bottom: 0; }
+            /* 5. 確保大螢幕卡片模式下，內部元素分配完美對齊 */
+            .inv-grid { 
+                    display: grid; 
+                    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); 
+                    gap: 12px; 
+            }
+            .inv-row { 
+                background: #2a2a2a; 
+                border: 1px solid #3a3a3a; 
+                border-radius: 8px; 
+                padding: 10px; 
+                margin-bottom: 0;
+                display: flex;
+                align-items: center;
+                justify-content: flex-start; /* 靠左對齊，其餘靠 margin-left: auto 撐開 */
+            }
             .inv-controls { margin-left: auto; }
             
             #deficitContainer { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
