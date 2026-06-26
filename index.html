@@ -43,14 +43,32 @@
         }
         .clear-btn:hover { background: var(--danger); color: #fff; }
 
-        .item-icon { width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
+        /* 核心修正：確保圖片在容器內等比例縮放，並透過正片疊底（multiply）消除純白底色 */
+        .item-icon { 
+            width: 100%; 
+            height: 100%; 
+            object-fit: contain; /* 確保不變形且完整置中顯示 */
+            pointer-events: none; 
+            mix-blend-mode: multiply; /* 關鍵：消除白底，使其與暗色背景融合 */
+        }
 
         /* 訂單槽 */
         .slots-container { display: flex; gap: 12px; overflow-x: auto; padding: 8px 16px; }
+        /* 修正訂單槽盒模型，防止大圖擠壓 */
         .slot {
-            width: 80px; height: 80px; border: 2px dashed #444; border-radius: 12px;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            position: relative; background: #252525; padding: 4px; box-sizing: border-box; flex-shrink: 0;
+            width: 80px; 
+            height: 80px; 
+            border: 2px dashed #444; 
+            border-radius: 12px;
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center;
+            position: relative; 
+            background: #252525; 
+            padding: 8px; /* 增加內距，給大小不一的圖檔留白緩衝 */
+            box-sizing: border-box; 
+            flex-shrink: 0;
         }
         .slot.filled { border-style: solid; border-color: var(--primary); background: #2c2c2c; }
         .slot .remove {
@@ -90,7 +108,14 @@
         .inv-grid { display: block; }
         .inv-row { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
         .inv-row:last-child { margin-bottom: 0; }
-        .inv-icon { width: 36px; height: 36px; object-fit: contain; }
+        /* 修正庫存與追蹤器圖示容器，鎖定為絕對正方形，強制約束內部圖片高度 */
+        .inv-icon { 
+            width: 36px; 
+            height: 36px; 
+            object-fit: contain; 
+            flex-shrink: 0; /* 防止被右側控制項擠壓變形 */
+            mix-blend-mode: multiply; /* 同步消除庫存圖示白底 */
+        }
         .inv-level-label { width: 32px; font-size: 14px; color: #ccc; }
         
         .inv-controls { display: flex; align-items: center; gap: 6px; margin-left: auto; }
